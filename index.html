@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Calculadora de Presión Arterial Media (PAM)</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#4f46e5; --accent-2:#06b6d4; --muted:#94a3b8;
+      --good:#10b981; --warn:#f59e0b; --bad:#ef4444;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#071124);color:#e6eef8}
+    .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px}
+    .card{width:100%;max-width:820px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border-radius:16px;padding:28px;box-shadow:0 10px 30px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03);display:grid;grid-template-columns:1fr 360px;gap:24px}
+    h1{margin:0 0 6px;font-size:20px}
+    p.lead{margin:0 0 18px;color:var(--muted)}
+    form{display:flex;flex-direction:column;gap:12px}
+    .row{display:flex;gap:12px}
+    label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+    input[type="text"],input[type="number"]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.02);color:inherit;font-size:15px}
+    input[type="number"]::-webkit-inner-spin-button,input[type="number"]::-webkit-outer-spin-button{opacity:0.6}
+    .small{font-size:13px;color:var(--muted)}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:600}
+    .btn-primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:white}
+    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+    .result-box{background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,0.03)}
+    .big{font-size:28px;font-weight:700;margin:8px 0}
+    .status{display:inline-block;padding:6px 10px;border-radius:999px;font-weight:700}
+    .status.good{background:rgba(16,185,129,0.12);color:var(--good)}
+    .status.warn{background:rgba(245,158,11,0.08);color:var(--warn)}
+    .status.bad{background:rgba(239,68,68,0.08);color:var(--bad)}
+    .note{font-size:13px;color:var(--muted);margin-top:8px}
+    .meta{font-size:13px;color:var(--muted);margin-top:14px}
+    .actions{display:flex;gap:8px;margin-top:12px}
+    footer{grid-column:1/-1;text-align:center;color:var(--muted);font-size:13px;margin-top:8px}
+    @media (max-width:880px){.card{grid-template-columns:1fr;max-width:520px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" role="application" aria-labelledby="title">
+      <main>
+        <h1 id="title">Calculadora de Presión Arterial Media (PAM)</h1>
+        <p class="lead">Ingresa el nombre del paciente y la tensión arterial sistólica (TAS) y diastólica (TAD). La calculadora mostrará la PAM y una interpretación simple.</p>
+
+        <form id="pamForm" onsubmit="return false;" autocomplete="off">
+          <div>
+            <label for="name">Nombre del paciente</label>
+            <input id="name" type="text" placeholder="Ej: Juan Pérez" required />
+          </div>
+
+          <div class="row">
+            <div style="flex:1">
+              <label for="tas">TAS (sistólica) mmHg</label>
+              <input id="tas" type="number" min="20" max="300" step="1" placeholder="Ej: 120" required />
+            </div>
+            <div style="width:160px">
+              <label for="tad">TAD (diastólica) mmHg</label>
+              <input id="tad" type="number" min="10" max="200" step="1" placeholder="Ej: 80" required />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:6px;align-items:center">
+            <button id="calcBtn" class="btn btn-primary" type="button">Calcular PAM</button>
+            <button id="resetBtn" class="btn btn-ghost" type="button">Limpiar</button>
+            <span style="margin-left:auto" class="small">Fórmula: PAM = (TAS + 2×TAD) / 3</span>
+          </div>
+        </form>
+
+        <div class="meta">Consejo: Usa esta herramienta sólo para apoyo informativo. Si hay dudas clínicas, consulta al profesional de salud responsable.</div>
+      </main>
+
+      <aside>
+        <div class="result-box" id="resultCard" aria-live="polite">
+          <div class="small">Resultado</div>
+          <div id="patientName" class="big" style="font-size:18px;color:var(--accent)">--</div>
+
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div>
+              <div class="small">PAM</div>
+              <div id="pamValue" class="big">-- mmHg</div>
+            </div>
+            <div>
+              <div class="small">Interpretación</div>
+              <div id="pamStatus" class="status">--</div>
+            </div>
+          </div>
+
+          <div class="note" id="note">Introduce los valores y pulsa "Calcular PAM".</div>
+
+          <div class="actions" style="margin-top:12px">
+            <button id="copyBtn" class="btn btn-ghost" type="button">Copiar resultado</button>
+            <button id="saveBtn" class="btn btn-ghost" type="button">Guardar en PDF</button>
+          </div>
+        </div>
+      </aside>
+
+      <footer>Hecho con ❤️ para Amy Valeria — Calculadora PAM • Versión simple</footer>
+    </div>
+  </div>
+
+  <script>
+    const nameInput = document.getElementById('name');
+    const tasInput = document.getElementById('tas');
+    const tadInput = document.getElementById('tad');
+    const calcBtn = document.getElementById('calcBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const pamValue = document.getElementById('pamValue');
+    const pamStatus = document.getElementById('pamStatus');
+    const patientName = document.getElementById('patientName');
+    const note = document.getElementById('note');
+    const copyBtn = document.getElementById('copyBtn');
+    const saveBtn = document.getElementById('saveBtn');
+
+    function formatOneDecimal(n){return Math.round(n*10)/10}
+
+    function classifyPam(pam){
+      // Clasificación simple:
+      // <70 baja, 70-100 normal, >100 alta
+      if(pam < 70) return {text:'Baja (posible hipotensión)', cls:'bad'};
+      if(pam <= 100) return {text:'Normal', cls:'good'};
+      return {text:'Alta (posible hipertensión)', cls:'warn'};
+    }
+
+    function showResult(){
+      const name = nameInput.value.trim() || '—';
+      const tas = Number(tasInput.value);
+      const tad = Number(tadInput.value);
+
+      if(!nameInput.value){ note.textContent = 'Por favor añade el nombre del paciente.'; nameInput.focus(); return; }
+      if(!tasInput.value || isNaN(tas) || tas<=0){ note.textContent = 'Introduce una TAS válida mayor que 0.'; tasInput.focus(); return; }
+      if(!tadInput.value || isNaN(tad) || tad<=0){ note.textContent = 'Introduce una TAD válida mayor que 0.'; tadInput.focus(); return; }
+      if(tad >= tas){ note.textContent = 'Advertencia: la TAD suele ser menor que la TAS. Revisa los valores.'; }
+
+      const pam = (tas + 2*tad)/3;
+      const pamRounded = formatOneDecimal(pam);
+      const cls = classifyPam(pamRounded);
+
+      patientName.textContent = name;
+      pamValue.textContent = pamRounded + ' mmHg';
+      pamStatus.textContent = cls.text;
+      pamStatus.className = 'status ' + cls.cls;
+
+      note.textContent = 'La PAM se calculó usando la fórmula (TAS + 2×TAD) / 3.';
+    }
+
+    calcBtn.addEventListener('click', showResult);
+    resetBtn.addEventListener('click', ()=>{
+      nameInput.value=''; tasInput.value=''; tadInput.value='';
+      patientName.textContent='--'; pamValue.textContent='-- mmHg'; pamStatus.textContent='--'; pamStatus.className='status';
+      note.textContent='Introduce los valores y pulsa "Calcular PAM".';
+    });
+
+    copyBtn.addEventListener('click', ()=>{
+      const name = nameInput.value.trim() || '--';
+      const text = `${name} — PAM: ${pamValue.textContent} — ${pamStatus.textContent}`;
+      navigator.clipboard?.writeText(text).then(()=>{
+        note.textContent='Resultado copiado al portapapeles.';
+      }).catch(()=>{ note.textContent='No se pudo copiar. Selecciona el texto manualmente.'; });
+    });
+
+    saveBtn.addEventListener('click', ()=>{
+      // Genera un PDF simple usando ventana de impresión (solo el resultado)
+      const name = nameInput.value.trim() || '--';
+      const tas = tasInput.value || '--';
+      const tad = tadInput.value || '--';
+      const pam = pamValue.textContent || '--';
+      const status = pamStatus.textContent || '--';
+
+      const html = `
+        <html><head><meta charset="utf-8"><title>Resultado PAM</title>
+        <style>body{font-family:Arial,sans-serif;padding:28px;color:#111} .h{font-size:18px;font-weight:700;margin-bottom:8px}</style>
+        </head><body>
+        <div class="h">Resultado: ${name}</div>
+        <div>TAS: ${tas} mmHg</div>
+        <div>TAD: ${tad} mmHg</div>
+        <div>PAM: ${pam}</div>
+        <div>Interpretación: ${status}</div>
+        <hr><div style="font-size:12px;color:#555;margin-top:10px">Generado por Calculadora PAM</div>
+        </body></html>`;
+
+      const w = window.open('', '_blank');
+      if(!w){ note.textContent='El navegador ha bloqueado la ventana. Permite ventanas emergentes e inténtalo de nuevo.'; return; }
+      w.document.write(html);
+      w.document.close();
+      w.focus();
+      // Esperar un momento antes de abrir diálogo de impresión
+      setTimeout(()=> w.print(), 300);
+    });
+
+    // Mejora de accesibilidad: ENTER en inputs numéricos calcula
+    [nameInput,tasInput,tadInput].forEach(el=>el.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter') showResult();
+    }));
+  </script>
+</body>
+</html>
